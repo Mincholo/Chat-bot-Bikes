@@ -1,9 +1,11 @@
 from flask import Flask, request, jsonify
+from flask_cors import CORS, cross_origin  # 🔥 Importar CORS
 import requests
 import json
 import os
 
 app = Flask(__name__)
+CORS(app, resources={r"/*": {"origins": "*"}}, supports_credentials=True)  # 🔥 Habilitar CORS
 
 # 🔹 Configuración de las API Keys usando variables de entorno
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
@@ -92,15 +94,21 @@ def obtener_respuesta(pregunta):
         print("Error al obtener respuesta de OpenAI:", e)
         return "Error al obtener respuesta de OpenAI." + INVITATION
 
-# 🔹 Ruta de la API
-@app.route('/ask', methods=['POST'])
+# 🔹 Ruta de la API con CORS y manejo de pre-flight requests
+@app.route('/ask', methods=['POST', 'OPTIONS'])
+@cross_origin()
 def ask():
+    if request.method == "OPTIONS":
+        return '', 204  # Responder sin contenido a las pre-flight requests
+
     data = request.get_json()
     pregunta = data.get('pregunta', '').strip()
     if not pregunta:
         return jsonify({"error": "Por favor, envía una pregunta válida."}), 400
+    
     respuesta = obtener_respuesta(pregunta)
     return jsonify({"respuesta": respuesta})
+
 # 🔹 Iniciar el servidor
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)
